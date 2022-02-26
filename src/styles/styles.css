@@ -1,0 +1,16 @@
+.container {
+    padding-top: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+h1 {
+    text-align: center;
+    color: blue;
+}
+.logo {
+    background-image: url('../assets/logo.png');
+    background-size: cover;
+    height: 100px;
+    width: 100px;
+    margin: 0 auto;
+}
