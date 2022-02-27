@@ -17,12 +17,36 @@
 // See https://webpack.js.org/concepts#loaders
 // (Source code omitted for this binary file)
 // npm i -D file-loader
+//---------------------
+// после добавление config вебпак в импортах убрать расширения файлов
+// resolve: {
+//     extensions: ['.js', '.json', '.xml', '.csv', '.png', '.css']
+// },
+import json from '@/assets/json'
+//import json
+import '@styles/styles'
+//import css
+import Post from '@models/Post'
+import Logo from '@/assets/logo'
+// import img
+import xml from '@/assets/GKULPART_43_d41b7fe0-61f0-4ce5-bb71-1c82a15237e2'
+// import xml fail
+import csv from '@/assets/import_company_csv'
+// import csv fail
+import * as $ from 'jquery'
 
-import json from './assets/json.json'
-import './styles/styles.css'
-import Post from './Post'
-import Logo from './assets/logo.png'
+// import jquery
+// * выбрать
+// as --------- так как, как, согласно
+// query ------------запрос
 
+import '@styles/less.less'
+// подключаем less
+import '@styles/scss.scss'
+//подключаем sass
 const post = new Post('Webpack Post Title', Logo)
 console.log('Post to string:', post.toString())
 console.log('JSON:', json)
+console.log('XML:', xml)
+console.log('CSV:', csv)
+$('pre').addClass('code').html(post.toString())

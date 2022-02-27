@@ -5,12 +5,58 @@
 // Этот объкт вебпак парсит и понмает что здесь находится
 // Две точки входа в наше приложение index && Post зависимые друг от друга
 // С помощью webpack можно удобно декомпозировать наше приложение и не думать в каком порядке подключать скрипты
-
+const isDev = process.env.NODE_ENV === 'development'
+const isProd = !isDev
+// console.log('IS DEV:', isDev)
+// задаем флаг для определения в каком значении находится сборка
 const path = require('path')
+const CopyPlugin = require('copy-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const HTMLWebpackPlugin = require('html-webpack-plugin')
 // подключаем плагин для контроля html файлов npm install -D html-webpack-plugin
 const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 // подключаем плагин для очистки кеша npm i clean-webpack-plugin --save-dev
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+const TerserWebpackPlugin = require('terser-webpack-plugin')
+//подключаем два плагина для минификации css файлов
+// но не можем сразу их добавлять иначе файлы будут оптимизироваться на этапе разработки
+// поэтому с помощью функции переписываем optimization: optimization(),
+const  optimization = () => {
+   const config = {
+       splitChunks: {
+           chunks: "all"
+       }
+   }
+   if (isProd) {
+       config.minimizer = [
+           new TerserWebpackPlugin(),
+           new CssMinimizerPlugin(),
+       ]
+   }
+    return config
+}
+//небольшая оптимизация hash --- не нужны во время разработки а нужны в prodaction
+const filename = ext => isDev ? `[name].${ext}` : `[name].[hash].${ext}`
+
+// проводис оптимизация loaders
+const cssLoaders = (addition) => {
+    const loaders = [{
+        loader: MiniCssExtractPlugin.loader,
+        options: {
+            // hmr: isDev,
+            // изменения определенных сущностей без перезагрузки страницы
+            // reloadAll: true
+            //ПРОБЛЕМА НЕ ПОЛУЧИЛОСЬ СКОРЕЕ ВЕРСИИ ИЗМЕНИЛИСЬ
+            // БЕЗ УКАЗАНИЯ ОПЦИЙ ВСЕ РАБОТАЕТ
+        }
+    }, 'css-loader']
+    if(addition) {
+        loaders.push(addition)
+    }
+    return loaders
+
+}
+
 // подключаем встроенный модуль для корректного подключения папки dist
 module.exports = {
     //добавляем context где лежат все исходники нашего приложения src после этого меняем пути здесь
@@ -57,12 +103,49 @@ entry: {
     // например если браузер закешировал приложение по названию файла то клиент не увидит изменения в приложении
     // получили файлы бандла со своими хешами
     output: {
-        filename: '[name].[contenthash].js',
+        // filename: '[name].[contenthash].js',
+        // меняю contenthash на hash
+        // filename: '[name].[hash].js',
+        // заменяю на использование функции
+        filename: filename('js'),
         // filename: '[name].bundle.js',
             //все скрипты собираются в данном файл
         path: path.resolve(__dirname, 'dist')
         // можно и вот так path: 'dist'  --- Но это некорректно
     },
+    // добавляем resolve - решать
+    // какие расширения понимать по умолчанию, extensions --- расширения
+    // пока их не пропишем в массив будет ошибка
+    // по умолчанию extensions: ['.js']
+    // позволяет в импортах убрать расширения файлов
+    // к сожалению не заработали --------- надо разбираться
+    // после пересборки все работает !!!!!!!!!!!!!!
+    //alias псевдоним позволяет избавиться от отновительных путей
+    resolve: {
+        extensions: ['.js', '.json', '.xml', '.csv', '.png', '.css'],
+        alias: {
+            '@models': path.resolve(__dirname, 'src/models'),
+            '@': path.resolve(__dirname, 'src'),
+            '@styles': path.resolve(__dirname, 'src/styles')
+
+        }
+    },
+    // С учетом 2-х точек входа мы дважды импортируем jquery – это нужно оптимизировать через вебпак
+    // в папке dist появляются vendors~ файлы
+    //происходит оптимизация и импорты проходят только однажды
+    optimization: optimization(),
+    // настраиваем dev server
+    // после этого вносим изменения в package.json
+    //"start": "webpack-dev-server --mode development --open"
+    // --open ------------ автоматически открывает проект в браузере
+    // --mode ------------ выбор режима
+    devServer: {
+        port: 4000,
+        static: './dist',
+        hot: isDev
+        // добавляем флаг isDev
+    },
+
     // добавляем плагины - это массив
     // он автоматически создает index.html но пустой
     // затем добавляем title как опции и после перезапуска npm run build инфо в файле обновляется
@@ -73,11 +156,28 @@ entry: {
     plugins: [
         new HTMLWebpackPlugin({
             // title: 'Webpack Taras',
-            template: './index.html'
+            template: './index.html',
+            //начинаем оптимизировать файлы с html
+            minify: {
+                collapseWhitespace: isProd
+            }
         }),
         new CleanWebpackPlugin({
 
 
+        }),
+        new CopyPlugin({
+            patterns: [
+                { from: path.resolve(__dirname, 'src/logotip.ico'), to: path.resolve(__dirname, 'dist')}
+            ]
+    // создаем плагин копирующий иконку с from --- откуда и to ------- куда
+        }),
+        new MiniCssExtractPlugin({
+            // filename: '[name].[contenthash].css'
+            // меняю на hash
+            // filename: '[name].[hash].css'
+            // меняю с использованием функции
+            filename: filename('css')
         })
     ],
     // вебпак не понимает css3 понимает только JS && JSON
@@ -101,15 +201,66 @@ entry: {
         rules: [
             {
                 test: /\.css$/,
-                use: ['style-loader', 'css-loader']
+                use: cssLoaders()
             },
+            // оптимизация с помощью функций----------------------
+            // use: ['style-loader', 'css-loader']
+            //     use: [{
+            //         loader: MiniCssExtractPlugin.loader,
+            //         options: {
+            //             // hmr: isDev,
+            //             // изменения определенных сущностей без перезагрузки страницы
+            //             // reloadAll: true
+            //             //ПРОБЛЕМА НУ ПОЛУЧИЛОСЬ СКОРЕЕ ВЕРСИИ ИЗМЕНИЛИСЬ
+            //             // БЕЗ УКАЗАНИЯ ОПЦИЙ ВСЕ РАБОТАЕТ
+            //
+            //         }
+            //     }, 'css-loader']
+            //     //подключаемся к css-mini-loader это позяволяет выносить css в отдельный файл
+            // },
+            {
+                test: /\.less$/,
+                use: cssLoaders('less-loader')
+            },
+
+                // оптимизация с помощью функций----------------------
+            //     use: [{
+            //         loader: MiniCssExtractPlugin.loader,
+            //     }, 'css-loader', 'less-loader']
+            //     подключаемся к less
+            // },
+            {
+                test: /\.s[ac]ss$/,
+                use: cssLoaders('sass-loader')
+            },
+            // оптимизация с помощью функций----------------------
+            //     use: [{
+            //         loader: MiniCssExtractPlugin.loader,
+            //     }, 'css-loader', 'sass-loader']
+            //     //подключаемся к sass
+            // },
             {
                 test: /\.(png|jpg|svg|gif)$/,
                 use: ['file-loader']
 
-            }
+            },
             //добавляем новый объект для работы с файлами -- картинками
-            //
+            {
+                test: /\.(ttf|woff|woff2|eot)$/,
+                use: ['file-loader']
+            },
+            //добавляем новый объект для работы с файлами шрифтов
+            {
+                test: /\.xml$/,
+                use: ['xml-loader']
+            },
+            //Добавляем новый объект для работы с файлами с расширением xml
+            {
+                test: /\.csv$/,
+                use: ['csv-loader']
+            }
+            //Добавляем новый объект для работы с файлами с расширением csv
+            //получилось но вебшторм не понимает csv - надо разобраться!!!!!!!!!!!!!!
         ]
     }
 
@@ -128,3 +279,13 @@ entry: {
 // module --- модуль
 // use --- использовать
 // watch --- смотреть, наблюдение
+// extensions - расширения
+// split ----------- разделить
+// chunks ----------- куски
+// slice ------------часть, ломтик
+// round ------------ круглый(круг)
+// ceil ------------- потолок
+// Math ------------- матиматика
+// map -------------- карта, план
+// replacer --------- заменитель
+// space ------------ пространство

@@ -1,4 +1,13 @@
+@import "roboto.css";
+/*подключаем шрифты*/
+@import "~normalize.css";
+/*~ тильда указывает что данную библиотеку нужно брать в папке node_modules*/
+/*подключаем библиотеку normalize.css*/
+body {
+    font-family: 'Roboto', sans-serif;
+}
 .container {
+
     padding-top: 2rem;
     max-width: 1000px;
     margin: 0 auto;
@@ -8,9 +17,14 @@ h1 {
     color: blue;
 }
 .logo {
-    background-image: url('../assets/logo.png');
+    background-image: url(https://picsum.photos/200/300);
     background-size: cover;
-    height: 100px;
-    width: 100px;
+    height: 500px;
+    width: 500px;
     margin: 0 auto;
+}
+.code {
+
+    font-size: 30px;
+    color: green;
 }

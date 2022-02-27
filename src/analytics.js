@@ -1,12 +1,16 @@
 // сторонний скрипт с аналитикой
+import * as $ from 'jquery'
+// подключаем jquery
 function createAnalytics(){
     let counter = 0;
     let destroyed = false;
     // начальный счетчик кликов
     const listener = () => counter++
     // функция для listener
-    document.addEventListener('click', listener)
+    // document.addEventListener('click', listener)
     // add listener from document
+    $(document).off('click', listener)
+    // используем jquery
     return {
         destroy() {
             // destroy - метод по которому аналитика прекращает своу действие
