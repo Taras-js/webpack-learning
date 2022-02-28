@@ -18,6 +18,7 @@ const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 // подключаем плагин для очистки кеша npm i clean-webpack-plugin --save-dev
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
 const TerserWebpackPlugin = require('terser-webpack-plugin')
+const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer')
 //подключаем два плагина для минификации css файлов
 // но не можем сразу их добавлять иначе файлы будут оптимизироваться на этапе разработки
 // поэтому с помощью функции переписываем optimization: optimization(),
@@ -38,7 +39,7 @@ const  optimization = () => {
 //небольшая оптимизация hash --- не нужны во время разработки а нужны в prodaction
 const filename = ext => isDev ? `[name].${ext}` : `[name].[hash].${ext}`
 
-// проводис оптимизация loaders
+// проводи оптимизацию loaders
 const cssLoaders = (addition) => {
     const loaders = [{
         loader: MiniCssExtractPlugin.loader,
@@ -55,6 +56,66 @@ const cssLoaders = (addition) => {
     }
     return loaders
 
+}
+// проводим оптимизацию
+const babelOptions = (preset) => {
+     const opts = {
+         presets: [
+             '@babel/preset-env'
+         ],
+         plugins: [
+             '@babel/plugin-proposal-class-properties'
+         ]
+     }
+     if(preset) {
+        opts.presets.push(preset)
+     }
+     return opts
+
+}
+// неудачная попытка автоматизировать loader eslint
+// const jsLoaders = () => {
+//     const loaders = [
+//         'babel-loader'
+//     ]
+//     if(isDev) {
+//         loaders.push('eslint-loader')
+//     }
+//     return loaders
+// }
+
+const plugins = () => {
+    const base = [
+            new HTMLWebpackPlugin({
+                // title: 'Webpack Taras',
+                template: './index.html',
+                //начинаем оптимизировать файлы с html
+                minify: {
+                    collapseWhitespace: isProd
+                }
+            }),
+            new CleanWebpackPlugin({
+
+
+            }),
+            new CopyPlugin({
+                patterns: [
+                    { from: path.resolve(__dirname, 'src/logotip.ico'), to: path.resolve(__dirname, 'dist')}
+                ]
+                // создаем плагин копирующий иконку с from --- откуда и to ------- куда
+            }),
+            new MiniCssExtractPlugin({
+                // filename: '[name].[contenthash].css'
+                // меняю на hash
+                // filename: '[name].[hash].css'
+                // меняю с использованием функции
+                filename: filename('css')
+            })
+        ]
+    if (isProd){
+        base.push(new BundleAnalyzerPlugin())
+    }
+    return base
 }
 
 // подключаем встроенный модуль для корректного подключения папки dist
@@ -78,14 +139,14 @@ module.exports = {
     //входной файл нашего приложения - откуда начать
     //после переноса index.html в папку dist изменяем минимальную конфигурацию
     // и вместо одной точки входа делаем объект с несколькими
-    // entry: './src/index.js',
+    // entry: './src/index.jsx',
     // в таком виде получаем ошибку
     // Error: Conflict: Multiple chunks emit assets to the same filename bundle.js (chunks main and analytics)
     // пользуемся паттерны в именах [name]
 
 entry: {
-        // main: './src/index.js',
-        // analytics: './src/analytics.js'
+        // main: './src/index.jsx',
+        // analytics: './src/analytics.ts'
     //меняем пути - убираем src после того как прописали контекст
     // получаем ошибку из-за абсолютных путей
 //     [webpack-cli] Invalid configuration object.
@@ -94,9 +155,16 @@ entry: {
 // -> The base directory (absolute path!) for resolving the `entry` option.
 // If `output.pathinfo` is set, the included pathinfo is shortened to this directory.
     //переписываем путь к папке в context через path
-    main: './index.js',
-    analytics: './analytics.js'
-    },
+    // main: './index.jsx',
+    main: ['@babel/polyfill', './index.jsx'],
+    // analytics: './analytics.js'
+    analytics: './analytics.ts'
+    // переводим аналитику на typescript
+
+},
+    // подключаем полифилл babel
+
+
     // куда складывать результаты работы webpack
     // прописываем паттерн [name]
     // добавляем еще один паттерн [contenthash] для избежания проблем с кешированием на продакшене
@@ -145,7 +213,9 @@ entry: {
         hot: isDev
         // добавляем флаг isDev
     },
-
+    // добавляем devtools исходные карты
+    // позволяет из консоли браузера смотреть на исходный код
+    devtool: isDev ? 'eval-source-map' : false,
     // добавляем плагины - это массив
     // он автоматически создает index.html но пустой
     // затем добавляем title как опции и после перезапуска npm run build инфо в файле обновляется
@@ -153,33 +223,34 @@ entry: {
     //в результате подключения template перестает работать title поэтому его надо убрать
     //добавляем плагин для очистки кеша dist npm install -D html-webpack-plugin
     //теперь можно менять контент и кэш не меняется
-    plugins: [
-        new HTMLWebpackPlugin({
-            // title: 'Webpack Taras',
-            template: './index.html',
-            //начинаем оптимизировать файлы с html
-            minify: {
-                collapseWhitespace: isProd
-            }
-        }),
-        new CleanWebpackPlugin({
-
-
-        }),
-        new CopyPlugin({
-            patterns: [
-                { from: path.resolve(__dirname, 'src/logotip.ico'), to: path.resolve(__dirname, 'dist')}
-            ]
-    // создаем плагин копирующий иконку с from --- откуда и to ------- куда
-        }),
-        new MiniCssExtractPlugin({
-            // filename: '[name].[contenthash].css'
-            // меняю на hash
-            // filename: '[name].[hash].css'
-            // меняю с использованием функции
-            filename: filename('css')
-        })
-    ],
+    plugins: plugins(),
+    // plugins: [
+    //     new HTMLWebpackPlugin({
+    //         // title: 'Webpack Taras',
+    //         template: './index.html',
+    //         //начинаем оптимизировать файлы с html
+    //         minify: {
+    //             collapseWhitespace: isProd
+    //         }
+    //     }),
+    //     new CleanWebpackPlugin({
+    //
+    //
+    //     }),
+    //     new CopyPlugin({
+    //         patterns: [
+    //             { from: path.resolve(__dirname, 'src/logotip.ico'), to: path.resolve(__dirname, 'dist')}
+    //         ]
+    // // создаем плагин копирующий иконку с from --- откуда и to ------- куда
+    //     }),
+    //     new MiniCssExtractPlugin({
+    //         // filename: '[name].[contenthash].css'
+    //         // меняю на hash
+    //         // filename: '[name].[hash].css'
+    //         // меняю с использованием функции
+    //         filename: filename('css')
+    //     })
+    // ],
     // вебпак не понимает css3 понимает только JS && JSON
     //поэтому добавляем loader в конфиг
     //loader позволяет работать с другими типами файлов кроме поддерживаемых напрямую
@@ -258,9 +329,61 @@ entry: {
             {
                 test: /\.csv$/,
                 use: ['csv-loader']
-            }
+            },
             //Добавляем новый объект для работы с файлами с расширением csv
             //получилось но вебшторм не понимает csv - надо разобраться!!!!!!!!!!!!!!
+            // {
+            //     test: /\.m?js$/,
+            //     exclude: /node_modules/,
+            //
+            //     use: [{
+            //         loader:  ['eslint-loader', 'babel-loader'],
+            //         options: {eslintPath: 'eslint',
+            //             fix : true,
+            //             emitError : true,
+            //             emitWarning : true}
+            //     }
+            //         ]
+            //
+            //
+            // },
+            // {
+            //     enforce: 'pre',
+            //     test: /\.js$/,
+            //     exclude: /node_modules/,
+            //     loader: 'eslint-loader',
+            // },
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader',
+            },
+            // {
+            //     test: /\.js$/,
+            //     exclude: /node_modules/,
+            //     use: jsLoaders()
+            // },
+            //подключаем eslint для файлов .js
+            {
+                test: /\.ts$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: babelOptions('@babel/preset-typescript')
+
+                }
+            },
+            //добавляем typescript
+            {
+                test: /\.jsx$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options:  babelOptions('@babel/preset-react')
+
+                }
+            },
+            //работаем с react
         ]
     }
 

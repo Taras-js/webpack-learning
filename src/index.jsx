@@ -28,6 +28,8 @@ import '@styles/styles'
 //import css
 import Post from '@models/Post'
 import Logo from '@/assets/logo'
+// import start  from '@/babel'
+// после установки React перестала работать ------ error
 // import img
 import xml from '@/assets/GKULPART_43_d41b7fe0-61f0-4ce5-bb71-1c82a15237e2'
 // import xml fail
@@ -40,6 +42,9 @@ import * as $ from 'jquery'
 // as --------- так как, как, согласно
 // query ------------запрос
 
+import React from "react";
+import { render } from 'react-dom';
+
 import '@styles/less.less'
 // подключаем less
 import '@styles/scss.scss'
@@ -50,3 +55,29 @@ console.log('JSON:', json)
 console.log('XML:', xml)
 console.log('CSV:', csv)
 $('pre').addClass('code').html(post.toString())
+
+
+    const App = () => (
+
+<div className="container">
+    <h1> I LEARNING WEBPACK </h1>
+    <hr/>
+    <div className="logo">Hello Taras</div>
+    <hr/>
+    <hr/>
+    <div className="box">
+        <h2> Less </h2>
+    </div>
+    <div className="card">
+        <h2> Sass </h2>
+    </div>
+</div>
+            );
+            render(<App/>, document.querySelector('.app'))
+
+
+
+
+
+
+

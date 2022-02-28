@@ -3,7 +3,7 @@ import * as $ from 'jquery'
 // подключаем jquery
 function createAnalytics(){
     let counter = 0;
-    let destroyed = false;
+    let destroyed: boolean = false;
     // начальный счетчик кликов
     const listener = () => counter++
     // функция для listener
@@ -34,4 +34,4 @@ function createAnalytics(){
     }
 }
 
-window.analytics = createAnalytics()
+window['analytics'] = createAnalytics()

@@ -10,7 +10,7 @@ const path = require('path')
 // подключаем встроенный модуль для корректного подключения папки dist
 module.exports = {
     //входной файл нашего приложения - откуда начать
-    entry: './src/index.js',
+    entry: './src/index.jsx',
     // куда складывать результаты работы webpack
     output: {
         filename: 'bundle.js',
